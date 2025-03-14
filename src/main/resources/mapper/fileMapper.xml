@@ -1,0 +1,45 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.file.FileMapper">
+	<insert id="insertFile">
+<!-- 		insert into `file` values(#{systemname},#{orgname},#{boardnum})
+	</insert>
+	<select id="getFileBySystemname">
+		select * from `file` where systemname=#{systemname}
+	</select>
+	<select id="getFiles">
+		select * from `file` where boardnum=#{boardnum}
+	</select>
+	<delete id="deleteFileBySystemname">
+		delete from `file` where systemname=#{systemname}
+	</delete>
+	<delete id="deleteFilesByBoardnum">
+		delete from `file` where boardnum=#{boardnum} -->
+    
+    
+    INSERT INTO file (boardNum, orgName, systemName)
+    VALUES (#{boardNum}, #{orgName}, #{systemName});
+</insert>
+	<select id="getFileBySystemname">
+		select * from file where systemname=#{systemname}
+	</select>
+	<select id="getFiles">
+		select * from file where boardnum=#{boardnum}
+	</select>
+	<delete id="deleteFileBySystemname">
+		delete from file where systemname=#{systemname}
+	</delete>
+	<delete id="deleteFilesByBoardnum">
+		delete from file where boardnum=#{boardnum}
+	</delete>
+	
+	<select id="getBoardFiles" parameterType="int">
+		select systemName from file where boardnum=#{boardnum}
+		order by boardNum ASC
+	</select>
+	
+	<select id="checkByboardNum">
+		select count(*) from file where boardnum=#{boardnum}
+	</select>
+</mapper>

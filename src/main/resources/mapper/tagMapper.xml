@@ -1,0 +1,88 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.tag.TagMapper">
+
+
+	<!--계시글에 달린 테그들을 가져올 수 있게 만들어 주는 sql문-->
+   	<select id="getTagIdsByBoardNum" parameterType="int" resultType="com.example.demo.domain.tag.TagDTO">
+   		select tag.tagId, tag.tagName, tag.normalizedTag from tag join tagRelation on tag.tagId = tagRelation.tagId
+   		where tagRelation.boardNum = #{boardNum}
+   	</select>
+   	<!-- 비교하기위해 하나의 tagName가져옴 있는지.-->
+   	<select id="getTagByName">
+	    select * from tag where tagName = #{tagName};
+	</select>
+   	
+	<!--계시글에 달린 태그들의 이름만을 가져올 수 있게 만드는 sql문-->
+	<select id="getTagNamesByBoardNum" parameterType="int">
+		select tag.tagName 
+		from tag 
+		join tagRelation on tag.tagId = tagRelation.tagId
+   		where tagrelation.boardNum = #{boardNum}
+	</select>
+	
+	
+	<!--사용자의 입력값을 통해 값을 가져오기-->
+	<select id="searchTagByUserInput" parameterType="String" resultType="java.util.Map">
+	    SELECT 
+	        JSON_OBJECT('tag', tagName, 'normalizedTag', normalizedTag) AS tagInfo
+	    FROM tag
+	    WHERE tagName LIKE CONCAT('%', #{userInput}, '%') 
+	       OR normalizedTag LIKE CONCAT('%', #{userInput}, '%')
+	</select>
+
+   	
+   	<!--유저가 계시글을 등록 할 때 테그 등록-->
+   	<insert id="tagInput">
+   		insert into tag (tagName, normalizedTag, similarityId)
+   		values(#{tagName}, #{normalizedTag}, #{similarityId})
+   	</insert>
+   	
+   	<select id="getLastTagId">
+	    select last_insert_id();
+	</select>
+	<insert id="insertTagRelation">
+	    insert into tagRelation (boardNum, tagId)
+	    values (#{boardNum}, #{tagId});
+	</insert>
+   	
+   	<!--유저가 계시글을 등록할 때 테그 관계 등록-->
+   	<insert id="tagRelByBoardNum">
+   		insert into tag (tagId, boardNum)
+   		values(#{tagId}, #{boardNum})
+   	</insert>
+   	
+   	<!--유저가 테그를 팔로우 할 수 있게 만들어 주는 sql문-->
+   	<insert id="tagFollow">
+  		insert into tagFollow (userId, tagId) values(#{userId}, #{tagId})
+   	</insert>
+   	
+   	<!--유저가 테그를 언팔로우 할 수 있게 만들어 주는 sql문-->
+   	<delete id="tagUnFollow">
+   		delete from tagFollow 
+   		where userId=#{userId} and tagId=#{tagId}
+   	</delete>
+   	
+	<select id="countBoardsByTagId" parameterType="int" resultType="int">
+	    SELECT COUNT(tr.boardNum)
+	    FROM tagRelation tr
+	    WHERE tr.tagId = #{tagId};
+	</select>
+	<delete id="deleteTagFollowByTagId" parameterType="int">
+	    DELETE FROM tagfollow
+	    WHERE tagId = #{tagId};
+	</delete>
+	<delete id="deleteTagByTagId" parameterType="int">
+	    DELETE FROM tag
+	    WHERE tagId = #{tagId};
+	</delete>
+	<delete id="deleteNullTagRelations">
+	    DELETE tr
+	    FROM tagRelation tr
+	    LEFT JOIN board b ON tr.boardNum = b.boardNum
+	    WHERE b.boardNum IS NULL;
+	</delete>
+
+   	
+</mapper>

@@ -1,0 +1,154 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.example.demo.mapper.board.BoardMapper">
+  
+ 	<!--전체 보드 데이터 가져오기-->
+    <select id="getAllBoardContents" resultType="com.example.demo.domain.board.BoardDTO">
+    	select * from board;
+    </select>
+
+	<select id="getBoardExcepUidAndWithBlockedUser" parameterType="String" resultType="com.example.demo.domain.board.BoardDTO">
+	    select DISTINCT
+	    board.boardNum, board.userId, board.boardContents, board.boardLocation, board.storeName, board.boardTime
+	    from board
+	    <if test="tagName != null and tagName != ''">
+	        JOIN tagRelation ON board.boardNum = tagRelation.boardNum
+	        JOIN tag ON tagRelation.tagId = tag.tagId
+	    </if>
+	    <where>
+	        <if test="tagName != null and tagName.trim() != ''">
+	            and (tag.tagName = #{tagName} or tag.normalizedTag = (select normalizedTag from tag where tagName = #{tagName} limit 1))
+	        </if>
+	        <if test="boardContents != null and boardContents.trim() != ''">
+	            and board.boardContents = #{boardContents}
+	        </if>
+	        <if test="boardLocation != null and boardLocation.trim() != ''">
+	            and board.boardLocation LIKE CONCAT('%', #{boardLocation}, '%')
+	        </if>
+	        and userId not in (
+		        select blockee from block where blocker = #{userId}  
+		        union
+		        select blocker from block where blockee = #{userId}  
+		    )
+	    </where>
+	    order by 
+	        case
+	            when board.boardNum in (select boardNum from `check` where userId = #{userId}) then 1  <!-- 읽은 게시물은 1 -->
+	            else 0  <!-- 읽지 않은 게시물은 0 -->
+	        end,
+	        boardNum desc  <!-- boardNum 기준 내림차순 정렬 -->
+	        LIMIT #{limit} OFFSET #{offset}  <!-- 페이지네이션 추가 -->
+	</select>
+    
+    <!--보드 작성-->
+    <insert id="writeBoard">
+    	insert into board (userId, boardContents, boardLocation, storeName)
+    	values(#{userId}, #{boardContents}, #{boardLocation}, #{storeName})
+    </insert>
+    
+    <select id="getLastNum">
+		select max(boardNum) from board where userId=#{userId}
+	</select>
+    
+    <!--보드 삭제-->
+    <delete id="deleteBoard">
+    	delete from board where userId=#{userId} and boardNum =#{boardNum}
+    </delete>
+    
+    <!--값이 있는지를 확인-->
+    <select id="findCheckByUserIdAndBoardNum" resultType="com.example.demo.domain.board.CheckDTO">
+	    select * from check
+	    where userId = #{userId} and boardNum = #{boardNum}
+	</select>
+
+
+
+    
+    <!--보드 시간 체크 관련부-->
+    
+    <!--읽음 계시물 시간 설정-->
+    <insert id="inputCheckTime">
+    	insert into check (userId, boardNum)
+    	values(#{userId}, #{boardNum})
+    </insert>
+    
+    <!--읽음 계시물 시간 업데이트-->
+    <update id="updateCheckTime">
+    	update check set checkTime = now()
+    	where userId =#{userId} and boardNum = #{boardNum}
+    </update>
+    
+    
+    
+    <!--보드 좋아요 관련부-->
+    
+    <!--보드 좋아요 수 가져오기-->
+    <select id="boardLikeCount" parameterType="int">
+    	select count(*) 
+    	from `like`
+    	where liketype = 1 and typeIndex = #{typeIndex}
+    </select>
+    
+    <!--검색 관련부-->
+    
+    <select id="getBoardCntByUserId">
+    	select count(*)
+    	from board
+    	where userId=#{userId}
+    </select>
+    
+    <select id="getBoardNumsByuserId">
+    	SELECT boardnum
+		FROM board
+		WHERE userId = #{userId}
+		ORDER BY boardnum DESC   -- 최신 순으로 정렬
+		LIMIT #{size}            -- 한 번에 가져올 게시물 수
+		OFFSET #{offset};        -- 페이지네이션을 위한 오프셋 (size * (page - 1))
+    </select>
+
+	<select id="getBoardNumsBybookmarks">
+	    SELECT b.boardNum
+	    FROM board b
+	    JOIN bookmark bm ON b.boardNum = bm.boardNum
+	    WHERE bm.userId = #{userId}
+	    ORDER BY b.boardNum DESC   -- 최신 순으로 정렬
+	    LIMIT #{size}              -- 한 번에 가져올 게시물 수
+	    OFFSET #{offset};          -- 페이지네이션을 위한 오프셋 (size * (page - 1))
+	</select>
+
+    <!--검색로 boardNum 전체 가져오기-->
+    <select id="getBoardNumsBySearchTerm">
+		SELECT DISTINCT b.boardNum
+		FROM board b
+		LEFT JOIN tagRelation tr ON b.boardNum = tr.boardNum
+		LEFT JOIN tag t ON tr.tagId = t.tagId
+		WHERE 
+    		b.userId LIKE CONCAT('%', #{searchTerm}, '%') OR
+    		b.boardContents LIKE CONCAT('%', #{searchTerm}, '%') OR
+    		b.boardLocation LIKE CONCAT('%', #{searchTerm}, '%') OR
+    		t.tagName LIKE CONCAT('%', #{searchTerm}, '%')	
+    	LIMIT #{limit}
+    	OFFSET #{offset};
+	</select>
+	
+	<select id="getBoardByBoardNum">
+    	select * from board where boardNum = #{boardNum};
+    </select>
+    
+    
+    <!--인기순 boardNum 전체 가져오기-->
+    <select id="getBoardNumsByTime">
+    	SELECT `b`.`boardNum`, COUNT(*) AS `likeCount`
+		FROM `like` l
+		JOIN `board` b ON l.`typeIndex` = b.`boardNum`
+		WHERE l.`likeType` = 1
+  			AND b.`boardTime` >= DATE_SUB(#{formatedNow}, INTERVAL 18000 MINUTE)
+		GROUP BY b.`boardNum`
+		ORDER BY `likeCount` DESC
+		LIMIT 3;
+    </select>
+
+    
+</mapper>

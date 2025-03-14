@@ -1,0 +1,30 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.user.BlockMapper">
+	<select id = "getBlockListByUserId">
+		SELECT u.userId , u.nickname, u.profile
+		FROM `user` u
+		JOIN `block` b ON b.blockee = u.userId
+		WHERE b.blocker = #{userId}
+		LIMIT #{page}, 10;
+	</select>
+	
+	<insert id="insertBlock">
+		INSERT INTO `block` (blocker, blockee)
+		VALUES (#{userId}, #{blockId});
+	</insert>
+	
+	<delete id="deleteBlock">
+		DELETE FROM `block`
+		WHERE blocker = #{userId} AND blockee = #{blockId};
+	</delete>
+	
+		<!-- 유저가 차단한 유저의 숫자를 확인 -->
+	<select id="getBlockUserCountByUserId">
+		select count(*) from block where blocker = #{blocker}
+	</select>
+
+	<select id="isBlock"> select count(*) from block where blocker = #{currentUser} and blockee = #{userId}; </select>
+
+</mapper>

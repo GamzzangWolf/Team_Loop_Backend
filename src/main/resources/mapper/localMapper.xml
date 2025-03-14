@@ -1,0 +1,15 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.local.LocalMapper">
+	<select id="getProvince">
+		SELECT DISTINCT `province`
+			FROM `local`
+	</select>
+	
+	<select id="getCityByProvince">
+		select city 
+		from local
+		where province = #{province}
+	</select>
+</mapper>
